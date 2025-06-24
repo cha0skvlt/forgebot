@@ -80,7 +80,6 @@ async def on_shutdown() -> None:
     log.info("bot session closed")
 
 
-
 async def main():
     await on_startup()
     dp.shutdown.register(on_shutdown)

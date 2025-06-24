@@ -73,11 +73,13 @@ async def on_startup():
             log.exception("Failed to load module %s: %s", name, e)
 
 
+
 async def on_shutdown() -> None:
     await db.close()
     log.info("db closed")
     await bot.session.close()
     log.info("bot session closed")
+
 
 
 async def main():

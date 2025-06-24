@@ -3,6 +3,7 @@ import asyncio
 import importlib
 import pkgutil
 from datetime import datetime
+import logging
 
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
@@ -12,6 +13,14 @@ from modules.db import db
 from modules.admin import startup as admin_startup
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s:%(name)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+log = logging.getLogger(__name__)
 
 TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
@@ -58,7 +67,7 @@ async def on_startup():
             if router:
                 dp.include_router(router)
         except Exception as e:
-            print(f"Failed to load module {name}: {e}")
+            log.exception("Failed to load module %s: %s", name, e)
 
 
 async def main():

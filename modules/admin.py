@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -9,11 +10,13 @@ from dotenv import load_dotenv
 from modules.db import db
 
 router = Router()
+log = logging.getLogger(__name__)
 
 
 async def startup() -> None:
     load_dotenv()
     await db.execute("CREATE TABLE IF NOT EXISTS admins(user_id BIGINT PRIMARY KEY)")
+    log.info("Admins table ensured")
 
 
 def _owner_only(func):
@@ -22,6 +25,7 @@ def _owner_only(func):
         if message.from_user and message.from_user.id == owner_id:
             return await func(message, *args, **kwargs)
         await message.answer("🚫 Access denied.")
+
     return wrapper
 
 
@@ -36,6 +40,7 @@ async def add_admin(message: Message) -> None:
     await db.execute(
         "INSERT INTO admins(user_id) VALUES($1) ON CONFLICT DO NOTHING", uid
     )
+    log.info("Added admin %s", uid)
     await message.answer(f"Added admin {uid}")
 
 
@@ -48,6 +53,7 @@ async def rm_admin(message: Message) -> None:
         return
     uid = int(parts[1])
     await db.execute("DELETE FROM admins WHERE user_id=$1", uid)
+    log.info("Removed admin %s", uid)
     await message.answer(f"Removed admin {uid}")
 
 
@@ -57,4 +63,5 @@ async def list_admin(message: Message) -> None:
     rows = await db.fetch("SELECT user_id FROM admins")
     admins = [str(r["user_id"]) for r in rows]
     text = ", ".join(admins) if admins else "No admins."
+    log.info("Listed admins: %s", text)
     await message.answer(text)

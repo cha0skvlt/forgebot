@@ -3,6 +3,7 @@ import asyncio
 import importlib
 import pkgutil
 from datetime import datetime
+import logging
 
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
@@ -12,6 +13,17 @@ from modules.db import db
 from modules.admin import startup as admin_startup
 
 load_dotenv()
+
+_format = "[%(asctime)s] %(levelname)s:%(name)s - %(message)s"
+_datefmt = "%Y-%m-%d %H:%M:%S"
+file_handler = logging.FileHandler("bot.log", encoding="utf-8")
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter(_format, _datefmt)
+file_handler.setFormatter(formatter)
+stream_handler.setFormatter(formatter)
+logging.basicConfig(level=logging.INFO, handlers=[file_handler, stream_handler])
+
+log = logging.getLogger(__name__)
 
 TOKEN = os.getenv("BOT_TOKEN")
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
@@ -58,11 +70,19 @@ async def on_startup():
             if router:
                 dp.include_router(router)
         except Exception as e:
-            print(f"Failed to load module {name}: {e}")
+            log.exception("Failed to load module %s: %s", name, e)
+
+
+async def on_shutdown() -> None:
+    await db.close()
+    log.info("db closed")
+    await bot.session.close()
+    log.info("bot session closed")
 
 
 async def main():
     await on_startup()
+    dp.shutdown.register(on_shutdown)
     await dp.start_polling(bot)
 
 

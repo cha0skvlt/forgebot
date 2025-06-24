@@ -14,11 +14,14 @@ from modules.admin import startup as admin_startup
 
 load_dotenv()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="[%(asctime)s] %(levelname)s:%(name)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+_format = "[%(asctime)s] %(levelname)s:%(name)s - %(message)s"
+_datefmt = "%Y-%m-%d %H:%M:%S"
+file_handler = logging.FileHandler("bot.log", encoding="utf-8")
+stream_handler = logging.StreamHandler()
+formatter = logging.Formatter(_format, _datefmt)
+file_handler.setFormatter(formatter)
+stream_handler.setFormatter(formatter)
+logging.basicConfig(level=logging.INFO, handlers=[file_handler, stream_handler])
 
 log = logging.getLogger(__name__)
 

@@ -36,7 +36,11 @@ async def add_admin(message: Message) -> None:
     if len(parts) != 2:
         await message.answer("Usage: /add_admin <user_id>")
         return
-    uid = int(parts[1])
+    try:
+        uid = int(parts[1])
+    except ValueError:
+        await message.answer("Invalid user ID")
+        return
     await db.execute(
         "INSERT INTO admins(user_id) VALUES($1) ON CONFLICT DO NOTHING", uid
     )
@@ -51,7 +55,11 @@ async def rm_admin(message: Message) -> None:
     if len(parts) != 2:
         await message.answer("Usage: /rm_admin <user_id>")
         return
-    uid = int(parts[1])
+    try:
+        uid = int(parts[1])
+    except ValueError:
+        await message.answer("Invalid user ID")
+        return
     await db.execute("DELETE FROM admins WHERE user_id=$1", uid)
     log.info("Removed admin %s", uid)
     await message.answer(f"Removed admin {uid}")

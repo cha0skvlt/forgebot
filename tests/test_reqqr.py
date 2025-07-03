@@ -168,3 +168,4 @@ async def test_genqr(monkeypatch):
     chat_id, photo, caption = msg.bot.photos[0]
     assert chat_id == msg.from_user.id
     assert caption == "t.me/bot?start=uuid"
+

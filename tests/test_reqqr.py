@@ -6,12 +6,10 @@ import pytest
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from modules import reqqr
 
-
 class DummyUser:
     def __init__(self, uid, username="name"):
         self.id = uid
         self.username = username
-
 
 class DummyBot:
     def __init__(self):
@@ -32,7 +30,6 @@ class DummyBot:
     async def get_me(self):
         return type("Me", (), {"username": "bot"})()
 
-
 class DummyMessage:
     def __init__(self, text):
         self.text = text
@@ -43,10 +40,8 @@ class DummyMessage:
     async def answer(self, text):
         self.answers.append(text)
 
-
 def make_msg(text="/start good"):
     return DummyMessage(text)
-
 
 @pytest.mark.asyncio
 async def test_start_uuid_new(monkeypatch):
@@ -68,7 +63,6 @@ async def test_start_uuid_new(monkeypatch):
     assert msg.bot.created and msg.bot.sent
     assert msg.answers == ["✅ Registration complete."]
 
-
 @pytest.mark.asyncio
 async def test_start_uuid_duplicate(monkeypatch):
     async def dummy_fetchrow(q, uuid):
@@ -79,7 +73,6 @@ async def test_start_uuid_duplicate(monkeypatch):
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert msg.answers == ["You are already registered."]
 
-
 @pytest.mark.asyncio
 async def test_start_uuid_invalid(monkeypatch):
     async def dummy_fetchrow(q, uuid):
@@ -89,7 +82,6 @@ async def test_start_uuid_invalid(monkeypatch):
     msg = make_msg("/start bad")
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert msg.answers == ["❌ Invalid QR code."]
-
 
 @pytest.mark.asyncio
 async def test_reg_success(monkeypatch):
@@ -117,7 +109,6 @@ async def test_reg_success(monkeypatch):
     )
     assert msg.answers == ["✅ Guest registered."]
 
-
 @pytest.mark.asyncio
 async def test_reg_invalid_phone(monkeypatch):
     async def dummy_fetchrow(q, a):
@@ -128,7 +119,6 @@ async def test_reg_invalid_phone(monkeypatch):
     await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid phone"]
 
-
 @pytest.mark.asyncio
 async def test_reg_invalid_date(monkeypatch):
     async def dummy_fetchrow(q, a):
@@ -138,7 +128,6 @@ async def test_reg_invalid_date(monkeypatch):
     msg = make_msg("/reg Name, +79998887766, 1990-13-01")
     await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid date"]
-
 
 @pytest.mark.asyncio
 async def test_genqr(monkeypatch):

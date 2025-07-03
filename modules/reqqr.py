@@ -24,7 +24,6 @@ def _admin_only(func):
         if row:
             return await func(message, *args, **kwargs)
         await message.answer("🚫 Access denied.")
-
     return wrapper
 
 
@@ -105,4 +104,3 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(buf.getvalue(), filename="qr.png"),
         caption=url,
     )
-

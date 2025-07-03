@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 
-from modules.db import db
+from modules.db import db, init_guests_table
 from modules.admin import startup as admin_startup
 
 load_dotenv()
@@ -41,8 +41,10 @@ START_TIME = datetime.now()
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message) -> None:
+    parts = message.text.split() if message.text else []
     if message.from_user.id != OWNER_ID:
-        await message.answer("🚫 Access denied.")
+        if len(parts) == 1:
+            await message.answer("🚫 Access denied.")
         return
     delta = datetime.now() - START_TIME
     days = delta.days
@@ -60,6 +62,7 @@ async def on_startup():
     """Connect DB and load routers from modules package."""
     await db.connect()
     await admin_startup()  # create tables
+    await init_guests_table()
 
     for _, name, _ in pkgutil.iter_modules(["modules"]):
         if name.startswith("_"):

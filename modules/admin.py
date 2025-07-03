@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import os
 import logging
-from aiogram import Router
+from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
+from datetime import date
 from dotenv import load_dotenv
+
+from modules.qr import make_qr_link
 
 from modules.db import db
 
@@ -23,6 +26,20 @@ def _owner_only(func):
     async def wrapper(message: Message, *args, **kwargs):
         owner_id = int(os.environ.get("OWNER_ID", 0))
         if message.from_user and message.from_user.id == owner_id:
+            return await func(message, *args, **kwargs)
+        await message.answer("🚫 Access denied.")
+
+    return wrapper
+
+
+def _admin_only(func):
+    async def wrapper(message: Message, *args, **kwargs):
+        uid = message.from_user.id if message.from_user else 0
+        owner_id = int(os.environ.get("OWNER_ID", "0"))
+        if uid == owner_id:
+            return await func(message, *args, **kwargs)
+        row = await db.fetchrow("SELECT 1 FROM admins WHERE user_id=$1", uid)
+        if row:
             return await func(message, *args, **kwargs)
         await message.answer("🚫 Access denied.")
 
@@ -73,3 +90,48 @@ async def list_admin(message: Message) -> None:
     text = ", ".join(admins) if admins else "No admins."
     log.info("Listed admins: %s", text)
     await message.answer(text)
+
+
+@router.message(Command("reg"))
+@_admin_only
+async def reg_guest(message: Message) -> None:
+    parts = message.text.split(" ", 1)
+    if len(parts) != 2:
+        await message.answer("Usage: /reg ФИО, телефон, YYYY-MM-DD")
+        return
+    fields = [f.strip() for f in parts[1].split(",")]
+    if len(fields) != 3:
+        await message.answer("Invalid format")
+        return
+    name, phone, dob_str = fields
+    if not (phone.startswith("+7") or phone.startswith("8")):
+        await message.answer("Invalid phone")
+        return
+    try:
+        date.fromisoformat(dob_str)
+    except ValueError:
+        await message.answer("Invalid date")
+        return
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute(
+        "INSERT INTO guests(uuid, name, phone, dob, source) VALUES($1,$2,$3,$4,'manual')",
+        uuid,
+        name,
+        phone,
+        dob_str,
+    )
+    await message.answer("✅ Guest registered.")
+
+
+@router.message(Command("genqr"))
+@_admin_only
+async def genqr_cmd(message: Message, bot: Bot) -> None:
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute("INSERT INTO guests(uuid, source) VALUES($1, 'qr')", uuid)
+    me = await bot.get_me()
+    url, data = make_qr_link(uuid, me.username)
+    await bot.send_photo(
+        message.from_user.id,
+        BufferedInputFile(data, filename="qr.png"),
+        caption=url,
+    )

@@ -1,12 +1,13 @@
 from __future__ import annotations
 import os
 import logging
-from aiogram import Router, Bot
-from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
 from datetime import date
 import io
 import qrcode
+
+from aiogram import Router, Bot
+from aiogram.filters import Command
+from aiogram.types import Message, BufferedInputFile
 
 from modules.db import db
 
@@ -104,3 +105,4 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(buf.getvalue(), filename="qr.png"),
         caption=url,
     )
+

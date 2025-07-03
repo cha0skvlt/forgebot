@@ -6,10 +6,9 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 from datetime import date
-import io
-import qrcode
 from dotenv import load_dotenv
 
+from modules.qr import make_qr_link
 from modules.db import db
 
 router = Router()
@@ -129,12 +128,9 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
     uuid = await db.fetchval("SELECT gen_random_uuid()")
     await db.execute("INSERT INTO guests(uuid, source) VALUES($1, 'qr')", uuid)
     me = await bot.get_me()
-    url = f"t.me/{me.username}?start={uuid}"
-    img = qrcode.make(url)
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    url, data = make_qr_link(uuid, me.username)
     await bot.send_photo(
         message.from_user.id,
-        BufferedInputFile(buf.getvalue(), filename="qr.png"),
+        BufferedInputFile(data, filename="qr.png"),
         caption=url,
     )

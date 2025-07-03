@@ -4,12 +4,14 @@ import pathlib
 import pytest
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from modules import reqqr
+from modules import reqqr, admin
+
 
 class DummyUser:
     def __init__(self, uid, username="name"):
         self.id = uid
         self.username = username
+
 
 class DummyBot:
     def __init__(self):
@@ -30,6 +32,7 @@ class DummyBot:
     async def get_me(self):
         return type("Me", (), {"username": "bot"})()
 
+
 class DummyMessage:
     def __init__(self, text):
         self.text = text
@@ -40,8 +43,10 @@ class DummyMessage:
     async def answer(self, text):
         self.answers.append(text)
 
+
 def make_msg(text="/start good"):
     return DummyMessage(text)
+
 
 @pytest.mark.asyncio
 async def test_start_uuid_new(monkeypatch):
@@ -63,6 +68,7 @@ async def test_start_uuid_new(monkeypatch):
     assert msg.bot.created and msg.bot.sent
     assert msg.answers == ["✅ Registration complete."]
 
+
 @pytest.mark.asyncio
 async def test_start_uuid_duplicate(monkeypatch):
     async def dummy_fetchrow(q, uuid):
@@ -73,6 +79,7 @@ async def test_start_uuid_duplicate(monkeypatch):
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert msg.answers == ["You are already registered."]
 
+
 @pytest.mark.asyncio
 async def test_start_uuid_invalid(monkeypatch):
     async def dummy_fetchrow(q, uuid):
@@ -82,6 +89,7 @@ async def test_start_uuid_invalid(monkeypatch):
     msg = make_msg("/start bad")
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert msg.answers == ["❌ Invalid QR code."]
+
 
 @pytest.mark.asyncio
 async def test_reg_success(monkeypatch):
@@ -96,11 +104,11 @@ async def test_reg_success(monkeypatch):
     async def dummy_execute(q, *args):
         called["exec"] = args
 
-    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
-    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
-    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(admin.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(admin.db, "execute", dummy_execute)
     msg = make_msg("/reg Name, +79998887766, 1990-01-01")
-    await reqqr.reg_guest(msg)
+    await admin.reg_guest(msg)
     assert called["exec"] == (
         "uuid",
         "Name",
@@ -109,25 +117,28 @@ async def test_reg_success(monkeypatch):
     )
     assert msg.answers == ["✅ Guest registered."]
 
+
 @pytest.mark.asyncio
 async def test_reg_invalid_phone(monkeypatch):
     async def dummy_fetchrow(q, a):
         return {"user_id": a}
 
-    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
     msg = make_msg("/reg Name, 12345, 1990-01-01")
-    await reqqr.reg_guest(msg)
+    await admin.reg_guest(msg)
     assert msg.answers == ["Invalid phone"]
+
 
 @pytest.mark.asyncio
 async def test_reg_invalid_date(monkeypatch):
     async def dummy_fetchrow(q, a):
         return {"user_id": a}
 
-    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
     msg = make_msg("/reg Name, +79998887766, 1990-13-01")
-    await reqqr.reg_guest(msg)
+    await admin.reg_guest(msg)
     assert msg.answers == ["Invalid date"]
+
 
 @pytest.mark.asyncio
 async def test_genqr(monkeypatch):
@@ -140,21 +151,18 @@ async def test_genqr(monkeypatch):
     async def dummy_execute(q, uuid):
         assert uuid == "uuid"
 
-    def dummy_make(data):
-        assert data == "t.me/bot?start=uuid"
-        class Img:
-            def save(self, buf, format="PNG"):
-                buf.write(b"img")
-        return Img()
+    def dummy_make_qr(uuid, username):
+        assert uuid == "uuid"
+        assert username == "bot"
+        return "t.me/bot?start=uuid", b"img"
 
-    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
-    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
-    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
-    monkeypatch.setattr(reqqr, "qrcode", type("QR", (), {"make": dummy_make}))
+    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(admin.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(admin.db, "execute", dummy_execute)
+    monkeypatch.setattr(admin, "make_qr_link", dummy_make_qr)
     msg = make_msg("/genqr")
-    await reqqr.genqr_cmd(msg, bot=msg.bot)
+    await admin.genqr_cmd(msg, bot=msg.bot)
     assert msg.bot.photos
     chat_id, photo, caption = msg.bot.photos[0]
     assert chat_id == msg.from_user.id
     assert caption == "t.me/bot?start=uuid"
-

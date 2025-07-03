@@ -1,14 +1,31 @@
 from __future__ import annotations
 import os
 import logging
+from datetime import date
+import io
+import qrcode
+
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
 
 from modules.db import db
 
 router = Router()
 log = logging.getLogger(__name__)
+
+
+def _admin_only(func):
+    async def wrapper(message: Message, *args, **kwargs):
+        uid = message.from_user.id if message.from_user else 0
+        owner_id = int(os.environ.get("OWNER_ID", "0"))
+        if uid == owner_id:
+            return await func(message, *args, **kwargs)
+        row = await db.fetchrow("SELECT 1 FROM admins WHERE user_id=$1", uid)
+        if row:
+            return await func(message, *args, **kwargs)
+        await message.answer("🚫 Access denied.")
+    return wrapper
 
 
 @router.message(Command("start"))
@@ -40,3 +57,52 @@ async def start_uuid(message: Message, bot: Bot) -> None:
             await message.answer("Registered, but invite failed.")
             return
     await message.answer("✅ Registration complete.")
+
+
+@router.message(Command("reg"))
+@_admin_only
+async def reg_guest(message: Message) -> None:
+    parts = message.text.split(" ", 1)
+    if len(parts) != 2:
+        await message.answer("Usage: /reg ФИО, телефон, YYYY-MM-DD")
+        return
+    fields = [f.strip() for f in parts[1].split(",")]
+    if len(fields) != 3:
+        await message.answer("Invalid format")
+        return
+    name, phone, dob_str = fields
+    if not (phone.startswith("+7") or phone.startswith("8")):
+        await message.answer("Invalid phone")
+        return
+    try:
+        date.fromisoformat(dob_str)
+    except ValueError:
+        await message.answer("Invalid date")
+        return
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute(
+        "INSERT INTO guests(uuid, name, phone, dob, source) VALUES($1,$2,$3,$4,'manual')",
+        uuid,
+        name,
+        phone,
+        dob_str,
+    )
+    await message.answer("✅ Guest registered.")
+
+
+@router.message(Command("genqr"))
+@_admin_only
+async def genqr_cmd(message: Message, bot: Bot) -> None:
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute("INSERT INTO guests(uuid, source) VALUES($1, 'qr')", uuid)
+    me = await bot.get_me()
+    url = f"t.me/{me.username}?start={uuid}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    await bot.send_photo(
+        message.from_user.id,
+        BufferedInputFile(buf.getvalue(), filename="qr.png"),
+        caption=url,
+    )
+

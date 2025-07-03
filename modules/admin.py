@@ -9,7 +9,6 @@ from datetime import date
 from dotenv import load_dotenv
 
 from modules.qr import make_qr_link
-
 from modules.db import db
 
 router = Router()

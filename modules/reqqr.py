@@ -1,10 +1,12 @@
 from __future__ import annotations
 import os
 import logging
-from datetime import date
 from aiogram import Router, Bot
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import Message, BufferedInputFile
+from datetime import date
+import io
+import qrcode
 
 from modules.db import db
 
@@ -86,4 +88,21 @@ async def reg_guest(message: Message) -> None:
         dob_str,
     )
     await message.answer("✅ Guest registered.")
+
+
+@router.message(Command("genqr"))
+@_admin_only
+async def genqr_cmd(message: Message, bot: Bot) -> None:
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute("INSERT INTO guests(uuid, source) VALUES($1, 'qr')", uuid)
+    me = await bot.get_me()
+    url = f"t.me/{me.username}?start={uuid}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    await bot.send_photo(
+        message.from_user.id,
+        BufferedInputFile(buf.getvalue(), filename="qr.png"),
+        caption=url,
+    )
 

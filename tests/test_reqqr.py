@@ -17,6 +17,7 @@ class DummyBot:
     def __init__(self):
         self.created = []
         self.sent = []
+        self.photos = []
 
     async def create_chat_invite_link(self, chat_id, member_limit=1):
         self.created.append((chat_id, member_limit))
@@ -24,6 +25,12 @@ class DummyBot:
 
     async def send_message(self, chat_id, text):
         self.sent.append((chat_id, text))
+
+    async def send_photo(self, chat_id, photo, caption=None):
+        self.photos.append((chat_id, photo, caption))
+
+    async def get_me(self):
+        return type("Me", (), {"username": "bot"})()
 
 
 class DummyMessage:
@@ -131,4 +138,34 @@ async def test_reg_invalid_date(monkeypatch):
     msg = make_msg("/reg Name, +79998887766, 1990-13-01")
     await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid date"]
+
+
+@pytest.mark.asyncio
+async def test_genqr(monkeypatch):
+    async def dummy_fetchrow(q, uid):
+        return {"user_id": uid}
+
+    async def dummy_fetchval(q):
+        return "uuid"
+
+    async def dummy_execute(q, uuid):
+        assert uuid == "uuid"
+
+    def dummy_make(data):
+        assert data == "t.me/bot?start=uuid"
+        class Img:
+            def save(self, buf, format="PNG"):
+                buf.write(b"img")
+        return Img()
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr, "qrcode", type("QR", (), {"make": dummy_make}))
+    msg = make_msg("/genqr")
+    await reqqr.genqr_cmd(msg, bot=msg.bot)
+    assert msg.bot.photos
+    chat_id, photo, caption = msg.bot.photos[0]
+    assert chat_id == msg.from_user.id
+    assert caption == "t.me/bot?start=uuid"
 

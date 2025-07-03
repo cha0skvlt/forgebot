@@ -1,10 +1,10 @@
 from __future__ import annotations
 import os
 import logging
+from datetime import date
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message
-from datetime import date
 
 from modules.db import db
 
@@ -86,3 +86,4 @@ async def reg_guest(message: Message) -> None:
         dob_str,
     )
     await message.answer("✅ Guest registered.")
+

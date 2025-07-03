@@ -131,3 +131,4 @@ async def test_reg_invalid_date(monkeypatch):
     msg = make_msg("/reg Name, +79998887766, 1990-13-01")
     await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid date"]
+

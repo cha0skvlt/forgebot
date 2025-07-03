@@ -82,3 +82,53 @@ async def test_start_uuid_invalid(monkeypatch):
     msg = make_msg("/start bad")
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert msg.answers == ["❌ Invalid QR code."]
+
+
+@pytest.mark.asyncio
+async def test_reg_success(monkeypatch):
+    called = {}
+
+    async def dummy_fetchrow(q, uid):
+        return {"user_id": uid}
+
+    async def dummy_fetchval(q):
+        return "uuid"
+
+    async def dummy_execute(q, *args):
+        called["exec"] = args
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    msg = make_msg("/reg Name, +79998887766, 1990-01-01")
+    await reqqr.reg_guest(msg)
+    assert called["exec"] == (
+        "uuid",
+        "Name",
+        "+79998887766",
+        "1990-01-01",
+    )
+    assert msg.answers == ["✅ Guest registered."]
+
+
+@pytest.mark.asyncio
+async def test_reg_invalid_phone(monkeypatch):
+    async def dummy_fetchrow(q, a):
+        return {"user_id": a}
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    msg = make_msg("/reg Name, 12345, 1990-01-01")
+    await reqqr.reg_guest(msg)
+    assert msg.answers == ["Invalid phone"]
+
+
+@pytest.mark.asyncio
+async def test_reg_invalid_date(monkeypatch):
+    async def dummy_fetchrow(q, a):
+        return {"user_id": a}
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    msg = make_msg("/reg Name, +79998887766, 1990-13-01")
+    await reqqr.reg_guest(msg)
+    assert msg.answers == ["Invalid date"]
+

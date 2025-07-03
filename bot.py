@@ -41,8 +41,10 @@ START_TIME = datetime.now()
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message) -> None:
+    parts = message.text.split() if message.text else []
     if message.from_user.id != OWNER_ID:
-        await message.answer("🚫 Access denied.")
+        if len(parts) == 1:
+            await message.answer("🚫 Access denied.")
         return
     delta = datetime.now() - START_TIME
     days = delta.days

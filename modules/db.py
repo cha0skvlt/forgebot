@@ -47,3 +47,21 @@ class Database:
 
 
 db = Database()
+
+
+async def init_guests_table() -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS guests(
+            id SERIAL PRIMARY KEY,
+            uuid TEXT UNIQUE NOT NULL,
+            tg_id BIGINT NULL,
+            name TEXT,
+            phone TEXT,
+            dob DATE,
+            source TEXT,
+            created_at TIMESTAMP DEFAULT now()
+        )
+        """
+    )
+    log.info("guests table ensured")

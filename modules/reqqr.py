@@ -111,4 +111,3 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(buf.getvalue(), filename="qr.png"),
         caption=url,
     )
-

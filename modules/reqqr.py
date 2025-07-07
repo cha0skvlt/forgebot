@@ -70,5 +70,48 @@ async def start_uuid(message: Message, bot: Bot) -> None:
 async def reg_guest(message: Message) -> None:
     parts = message.text.split(" ", 1)
     if len(parts) != 2:
-        await message.answer
+        await message.answer("Usage: /reg ФИО, телефон, YYYY-MM-DD")
+        return
+    fields = [f.strip() for f in parts[1].split(",")]
+    if len(fields) != 3:
+        await message.answer("Invalid format")
+        return
+    name, phone, dob_str = fields
+    if not (phone.startswith("+7") or phone.startswith("8")):
+        await message.answer("Invalid phone")
+        return
+    try:
+        date.fromisoformat(dob_str)
+    except ValueError:
+        await message.answer("Invalid date")
+        return
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute(
+        "INSERT INTO guests(uuid, name, phone, dob, source) VALUES($1,$2,$3,$4,'manual')",
+        uuid,
+        name,
+        phone,
+        dob_str,
+    )
+    guest_id = await db.fetchval("SELECT id FROM guests WHERE uuid=$1", uuid)
+    await db.execute("INSERT INTO visits(guest_id) VALUES($1)", guest_id)
+    await message.answer("✅ Guest registered.")
+
+
+@router.message(Command("genqr"))
+@_admin_only
+async def genqr_cmd(message: Message, bot: Bot) -> None:
+    uuid = await db.fetchval("SELECT gen_random_uuid()")
+    await db.execute("INSERT INTO guests(uuid, source) VALUES($1, 'qr')", uuid)
+    me = await bot.get_me()
+    url = f"t.me/{me.username}?start={uuid}"
+    img = qrcode.make(url)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    await bot.send_photo(
+        message.from_user.id,
+        BufferedInputFile(buf.getvalue(), filename="qr.png"),
+        caption=url,
+    )
+
 

@@ -6,24 +6,23 @@ from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 from datetime import date
-from dotenv import load_dotenv
 
 from modules.qr import make_qr_link
 from modules.db import db
+from modules.env import get_env
 
 router = Router()
 log = logging.getLogger(__name__)
 
 
 async def startup() -> None:
-    load_dotenv()
     await db.execute("CREATE TABLE IF NOT EXISTS admins(user_id BIGINT PRIMARY KEY)")
     log.info("Admins table ensured")
 
 
 def _owner_only(func):
     async def wrapper(message: Message, *args, **kwargs):
-        owner_id = int(os.environ.get("OWNER_ID", 0))
+        owner_id = int(get_env("OWNER_ID", required=True))
         if message.from_user and message.from_user.id == owner_id:
             return await func(message, *args, **kwargs)
         await message.answer("🚫 Access denied.")
@@ -34,7 +33,7 @@ def _owner_only(func):
 def _admin_only(func):
     async def wrapper(message: Message, *args, **kwargs):
         uid = message.from_user.id if message.from_user else 0
-        owner_id = int(os.environ.get("OWNER_ID", "0"))
+        owner_id = int(get_env("OWNER_ID", required=True))
         if uid == owner_id:
             return await func(message, *args, **kwargs)
         row = await db.fetchrow("SELECT 1 FROM admins WHERE user_id=$1", uid)
@@ -134,3 +133,4 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(data, filename="qr.png"),
         caption=url,
     )
+

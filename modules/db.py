@@ -3,6 +3,7 @@ import os
 from typing import Any, List, Optional
 
 import asyncpg
+from modules.env import get_env
 
 log = logging.getLogger(__name__)
 
@@ -17,9 +18,7 @@ class Database:
         return self.pool
 
     async def connect(self) -> None:
-        dsn = os.getenv("POSTGRES_DSN")
-        if not dsn:
-            raise RuntimeError("POSTGRES_DSN is not set")
+        dsn = get_env("POSTGRES_DSN", required=True)
         self.pool = await asyncpg.create_pool(dsn)
         log.info("PostgreSQL pool created")
 

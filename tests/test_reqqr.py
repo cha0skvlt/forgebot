@@ -6,6 +6,8 @@ import pytest
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from modules import reqqr, admin
 
+os.environ["OWNER_ID"] = "1"
+
 
 class DummyUser:
     def __init__(self, uid, username="name", first_name="first"):

@@ -1,5 +1,5 @@
 stage: mvp
-progress: "90%"
+progress: "95%"
 next_task: generate_readme
 
 completed:
@@ -18,6 +18,7 @@ completed:
   - "Автоматический ответ при повторном визите (/start): 'Это уже X-е посещение'"
   - "Команда /report — статистика посещений (уникальные, повторные, по дате)"
   - "Подтверждение оферты и логика согласия (поле agreed_at в guests)"
+  - "Fallback имени и индекс по visits(guest_id)"
 
 pending:
   - "Финальный README с описанием всех команд и сборки"

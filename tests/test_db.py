@@ -26,6 +26,6 @@ async def test_init_guests_table():
     assert exists == 'guests'
     names = [r['column_name'] for r in cols]
     assert names == [
-        'id', 'uuid', 'tg_id', 'name', 'phone', 'dob', 'source', 'created_at'
+        'id', 'uuid', 'tg_id', 'name', 'phone', 'dob', 'source', 'created_at', 'agreed_at'
     ]
 

@@ -1,5 +1,5 @@
 import logging
-import os
+import asyncio
 from typing import Any, List, Optional
 
 import asyncpg
@@ -19,8 +19,15 @@ class Database:
 
     async def connect(self) -> None:
         dsn = get_env("POSTGRES_DSN", required=True)
-        self.pool = await asyncpg.create_pool(dsn)
-        log.info("PostgreSQL pool created")
+        for attempt in range(10):
+            try:
+                self.pool = await asyncpg.create_pool(dsn)
+                log.info("PostgreSQL pool created")
+                return
+            except Exception as e:
+                log.warning("DB connect failed (%s): %s", attempt + 1, e)
+                await asyncio.sleep(1)
+        raise RuntimeError("Could not connect to PostgreSQL")
 
     async def close(self) -> None:
         if self.pool:

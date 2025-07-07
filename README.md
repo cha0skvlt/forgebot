@@ -75,4 +75,3 @@ docker-compose up --build -d
 ```bash
 docker exec -it forgebot pytest
 ```
-

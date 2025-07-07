@@ -3,6 +3,7 @@ import os
 from typing import Any, List, Optional
 
 import asyncpg
+from modules.env import get_env
 
 log = logging.getLogger(__name__)
 
@@ -17,9 +18,7 @@ class Database:
         return self.pool
 
     async def connect(self) -> None:
-        dsn = os.getenv("POSTGRES_DSN")
-        if not dsn:
-            raise RuntimeError("POSTGRES_DSN is not set")
+        dsn = get_env("POSTGRES_DSN", required=True)
         self.pool = await asyncpg.create_pool(dsn)
         log.info("PostgreSQL pool created")
 
@@ -60,8 +59,25 @@ async def init_guests_table() -> None:
             phone TEXT,
             dob DATE,
             source TEXT,
-            created_at TIMESTAMP DEFAULT now()
+            created_at TIMESTAMP DEFAULT now(),
+            agreed_at TIMESTAMP
         )
         """
     )
     log.info("guests table ensured")
+
+
+async def init_visits_table() -> None:
+    await db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS visits(
+            id SERIAL PRIMARY KEY,
+            guest_id INTEGER REFERENCES guests(id),
+            ts TIMESTAMP DEFAULT now()
+        )
+        """
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS visits_guest_id_idx ON visits(guest_id)"
+    )
+    log.info("visits table ensured")

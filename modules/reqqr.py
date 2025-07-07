@@ -1,5 +1,4 @@
 from __future__ import annotations
-import os
 import logging
 from datetime import date
 import io
@@ -114,4 +113,5 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(buf.getvalue(), filename="qr.png"),
         caption=url,
     )
+
 

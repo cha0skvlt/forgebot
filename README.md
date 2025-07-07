@@ -23,3 +23,4 @@ completed:
 pending:
   - "Финальный README с описанием всех команд и сборки"
   - "Сборка ZIP-архива для заказчика (docker-compose, .env.example, README, инструкции)"
+

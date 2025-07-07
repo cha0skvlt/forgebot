@@ -112,28 +112,34 @@ async def test_start_uuid_invalid(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_reg_success(monkeypatch):
-    called = {}
+    calls = {"guest": None, "visits": 0}
 
     async def dummy_fetchrow(q, uid):
         return {"user_id": uid}
 
-    async def dummy_fetchval(q):
-        return "uuid"
+    async def dummy_fetchval(q, *args):
+        if "gen_random_uuid" in q:
+            return "uuid"
+        return 1
 
     async def dummy_execute(q, *args):
-        called["exec"] = args
+        if "INSERT INTO visits" in q:
+            calls["visits"] += 1
+        else:
+            calls["guest"] = args
 
-    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
-    monkeypatch.setattr(admin.db, "fetchval", dummy_fetchval)
-    monkeypatch.setattr(admin.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
     msg = make_msg("/reg Name, +79998887766, 1990-01-01")
-    await admin.reg_guest(msg)
-    assert called["exec"] == (
+    await reqqr.reg_guest(msg)
+    assert calls["guest"] == (
         "uuid",
         "Name",
         "+79998887766",
         "1990-01-01",
     )
+    assert calls["visits"] == 1
     assert msg.answers == ["✅ Guest registered."]
 
 
@@ -142,9 +148,9 @@ async def test_reg_invalid_phone(monkeypatch):
     async def dummy_fetchrow(q, a):
         return {"user_id": a}
 
-    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     msg = make_msg("/reg Name, 12345, 1990-01-01")
-    await admin.reg_guest(msg)
+    await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid phone"]
 
 
@@ -153,9 +159,9 @@ async def test_reg_invalid_date(monkeypatch):
     async def dummy_fetchrow(q, a):
         return {"user_id": a}
 
-    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     msg = make_msg("/reg Name, +79998887766, 1990-13-01")
-    await admin.reg_guest(msg)
+    await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid date"]
 
 

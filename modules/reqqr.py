@@ -90,6 +90,8 @@ async def reg_guest(message: Message) -> None:
         phone,
         dob_str,
     )
+    guest_id = await db.fetchval("SELECT id FROM guests WHERE uuid=$1", uuid)
+    await db.execute("INSERT INTO visits(guest_id) VALUES($1)", guest_id)
     await message.answer("✅ Guest registered.")
 
 

@@ -8,9 +8,10 @@ from modules import reqqr, admin
 
 
 class DummyUser:
-    def __init__(self, uid, username="name"):
+    def __init__(self, uid, username="name", first_name="first"):
         self.id = uid
         self.username = username
+        self.first_name = first_name
 
 
 class DummyBot:
@@ -74,6 +75,32 @@ async def test_start_uuid_new(monkeypatch):
     assert calls["update"] == (42, "user", "good")
     assert msg.bot.created and msg.bot.sent
     assert msg.answers == ["✅ Registration complete. Согласие получено."]
+
+
+@pytest.mark.asyncio
+async def test_start_uuid_name_fallback(monkeypatch):
+    calls = {"update": None, "visits": 0}
+
+    async def dummy_fetchrow(q, uuid):
+        return {"id": 1, "tg_id": None}
+
+    async def dummy_execute(q, *args):
+        if "UPDATE guests" in q:
+            calls["update"] = args
+        elif "INSERT INTO visits" in q:
+            calls["visits"] += 1
+
+    async def dummy_fetchval(q, *args):
+        return calls["visits"]
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    msg = make_msg()
+    msg.from_user.username = None
+    msg.from_user.first_name = "First"
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert calls["update"] == (42, "First", "good")
 
 
 @pytest.mark.asyncio

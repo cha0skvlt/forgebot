@@ -40,10 +40,11 @@ async def start_uuid(message: Message, bot: Bot) -> None:
         return
     guest_id = row["id"]
     if row["tg_id"] is None:
+        name = message.from_user.username or message.from_user.first_name
         await db.execute(
             "UPDATE guests SET tg_id=$1, name=$2, source='qr', agreed_at=now() WHERE uuid=$3",
             message.from_user.id,
-            message.from_user.username,
+            name,
             uuid,
         )
         await message.answer("✅ Registration complete. Согласие получено.")
@@ -110,4 +111,3 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(buf.getvalue(), filename="qr.png"),
         caption=url,
     )
-

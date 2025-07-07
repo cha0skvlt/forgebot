@@ -78,4 +78,7 @@ async def init_visits_table() -> None:
         )
         """
     )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS visits_guest_id_idx ON visits(guest_id)"
+    )
     log.info("visits table ensured")

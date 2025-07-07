@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 
-from modules.db import db, init_guests_table
+from modules.db import db, init_guests_table, init_visits_table
 from modules.admin import startup as admin_startup
 
 load_dotenv()
@@ -63,6 +63,7 @@ async def on_startup():
     await db.connect()
     await admin_startup()  # create tables
     await init_guests_table()
+    await init_visits_table()
 
     for _, name, _ in pkgutil.iter_modules(["modules"]):
         if name.startswith("_"):

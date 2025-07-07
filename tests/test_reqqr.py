@@ -8,9 +8,10 @@ from modules import reqqr, admin
 
 
 class DummyUser:
-    def __init__(self, uid, username="name"):
+    def __init__(self, uid, username="name", first_name="first"):
         self.id = uid
         self.username = username
+        self.first_name = first_name
 
 
 class DummyBot:
@@ -50,34 +51,79 @@ def make_msg(text="/start good"):
 
 @pytest.mark.asyncio
 async def test_start_uuid_new(monkeypatch):
-    called = {}
+    calls = {"update": None, "visits": 0}
 
     async def dummy_fetchrow(q, uuid):
         assert uuid == "good"
-        return {"tg_id": None}
+        return {"id": 1, "tg_id": None}
 
     async def dummy_execute(q, *args):
-        called["exec"] = args
+        if "UPDATE guests" in q:
+            calls["update"] = args
+        elif "INSERT INTO visits" in q:
+            calls["visits"] += 1
+
+    async def dummy_fetchval(q, *args):
+        return calls["visits"]
 
     monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     os.environ["CHANNEL_ID"] = "123"
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
-    assert called["exec"] == (42, "user", "good")
+    assert calls["update"] == (42, "user", "good")
     assert msg.bot.created and msg.bot.sent
-    assert msg.answers == ["✅ Registration complete."]
+    assert msg.answers == ["✅ Registration complete. Согласие получено."]
 
 
 @pytest.mark.asyncio
-async def test_start_uuid_duplicate(monkeypatch):
+async def test_start_uuid_name_fallback(monkeypatch):
+    calls = {"update": None, "visits": 0}
+
     async def dummy_fetchrow(q, uuid):
-        return {"tg_id": 42}
+        return {"id": 1, "tg_id": None}
+
+    async def dummy_execute(q, *args):
+        if "UPDATE guests" in q:
+            calls["update"] = args
+        elif "INSERT INTO visits" in q:
+            calls["visits"] += 1
+
+    async def dummy_fetchval(q, *args):
+        return calls["visits"]
 
     monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    msg = make_msg()
+    msg.from_user.username = None
+    msg.from_user.first_name = "First"
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert calls["update"] == (42, "First", "good")
+
+
+@pytest.mark.asyncio
+async def test_start_uuid_repeat(monkeypatch):
+    visits = 1
+
+    async def dummy_fetchrow(q, uuid):
+        return {"id": 1, "tg_id": 42}
+
+    async def dummy_execute(q, *args):
+        nonlocal visits
+        if "INSERT INTO visits" in q:
+            visits += 1
+
+    async def dummy_fetchval(q, *args):
+        return visits
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
-    assert msg.answers == ["You are already registered."]
+    assert msg.answers == ["Это уже 2-е посещение"]
 
 
 @pytest.mark.asyncio
@@ -93,28 +139,34 @@ async def test_start_uuid_invalid(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_reg_success(monkeypatch):
-    called = {}
+    calls = {"guest": None, "visits": 0}
 
     async def dummy_fetchrow(q, uid):
         return {"user_id": uid}
 
-    async def dummy_fetchval(q):
-        return "uuid"
+    async def dummy_fetchval(q, *args):
+        if "gen_random_uuid" in q:
+            return "uuid"
+        return 1
 
     async def dummy_execute(q, *args):
-        called["exec"] = args
+        if "INSERT INTO visits" in q:
+            calls["visits"] += 1
+        else:
+            calls["guest"] = args
 
-    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
-    monkeypatch.setattr(admin.db, "fetchval", dummy_fetchval)
-    monkeypatch.setattr(admin.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
     msg = make_msg("/reg Name, +79998887766, 1990-01-01")
-    await admin.reg_guest(msg)
-    assert called["exec"] == (
+    await reqqr.reg_guest(msg)
+    assert calls["guest"] == (
         "uuid",
         "Name",
         "+79998887766",
         "1990-01-01",
     )
+    assert calls["visits"] == 1
     assert msg.answers == ["✅ Guest registered."]
 
 
@@ -123,9 +175,9 @@ async def test_reg_invalid_phone(monkeypatch):
     async def dummy_fetchrow(q, a):
         return {"user_id": a}
 
-    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     msg = make_msg("/reg Name, 12345, 1990-01-01")
-    await admin.reg_guest(msg)
+    await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid phone"]
 
 
@@ -134,9 +186,9 @@ async def test_reg_invalid_date(monkeypatch):
     async def dummy_fetchrow(q, a):
         return {"user_id": a}
 
-    monkeypatch.setattr(admin.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     msg = make_msg("/reg Name, +79998887766, 1990-13-01")
-    await admin.reg_guest(msg)
+    await reqqr.reg_guest(msg)
     assert msg.answers == ["Invalid date"]
 
 

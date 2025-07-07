@@ -50,34 +50,53 @@ def make_msg(text="/start good"):
 
 @pytest.mark.asyncio
 async def test_start_uuid_new(monkeypatch):
-    called = {}
+    calls = {"update": None, "visits": 0}
 
     async def dummy_fetchrow(q, uuid):
         assert uuid == "good"
-        return {"tg_id": None}
+        return {"id": 1, "tg_id": None}
 
     async def dummy_execute(q, *args):
-        called["exec"] = args
+        if "UPDATE guests" in q:
+            calls["update"] = args
+        elif "INSERT INTO visits" in q:
+            calls["visits"] += 1
+
+    async def dummy_fetchval(q, *args):
+        return calls["visits"]
 
     monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     os.environ["CHANNEL_ID"] = "123"
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
-    assert called["exec"] == (42, "user", "good")
+    assert calls["update"] == (42, "user", "good")
     assert msg.bot.created and msg.bot.sent
-    assert msg.answers == ["✅ Registration complete."]
+    assert msg.answers == ["✅ Registration complete. Согласие получено."]
 
 
 @pytest.mark.asyncio
-async def test_start_uuid_duplicate(monkeypatch):
+async def test_start_uuid_repeat(monkeypatch):
+    visits = 1
+
     async def dummy_fetchrow(q, uuid):
-        return {"tg_id": 42}
+        return {"id": 1, "tg_id": 42}
+
+    async def dummy_execute(q, *args):
+        nonlocal visits
+        if "INSERT INTO visits" in q:
+            visits += 1
+
+    async def dummy_fetchval(q, *args):
+        return visits
 
     monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
-    assert msg.answers == ["You are already registered."]
+    assert msg.answers == ["Это уже 2-е посещение"]
 
 
 @pytest.mark.asyncio

@@ -52,7 +52,9 @@ async def start_uuid(message: Message, bot: Bot) -> None:
     count = await db.fetchval("SELECT COUNT(*) FROM visits WHERE guest_id=$1", guest_id)
     if count == 1:
         channel_id = get_env("CHANNEL_ID")
-        if channel_id:
+        if not channel_id:
+            log.warning("CHANNEL_ID not set")
+        elif channel_id.startswith("-100"):
             try:
                 link = await bot.create_chat_invite_link(int(channel_id), member_limit=1)
                 await bot.send_message(message.from_user.id, link.invite_link)
@@ -60,7 +62,8 @@ async def start_uuid(message: Message, bot: Bot) -> None:
                 log.exception("invite failed: %s", e)
                 await message.answer("Registered, but invite failed.")
         else:
-            log.warning("CHANNEL_ID not set")
+            public = channel_id.lstrip("@")
+            await bot.send_message(message.from_user.id, f"https://t.me/{public}")
     else:
         await message.answer(f"Это уже {count}-е посещение")
 

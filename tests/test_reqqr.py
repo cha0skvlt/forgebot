@@ -199,6 +199,33 @@ async def test_start_uuid_repeat(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_start_uuid_registered_first_visit(monkeypatch):
+    calls = {"update": 0, "visits": 0}
+
+    async def dummy_fetchrow(q, uuid):
+        return {"id": 1, "tg_id": 42}
+
+    async def dummy_execute(q, *args):
+        if "UPDATE guests" in q:
+            calls["update"] += 1
+        elif "INSERT INTO visits" in q:
+            calls["visits"] += 1
+
+    async def dummy_fetchval(q, *args):
+        return calls["visits"]
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    msg = make_msg()
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert calls["update"] == 0
+    assert calls["visits"] == 1
+    assert msg.answers == ["Это уже 1-е посещение"]
+    assert not msg.bot.created and not msg.bot.sent
+
+
+@pytest.mark.asyncio
 async def test_start_uuid_invalid(monkeypatch):
     async def dummy_fetchrow(q, uuid):
         return None

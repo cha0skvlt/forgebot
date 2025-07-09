@@ -54,12 +54,13 @@
 ```env
 BOT_TOKEN=123456:ABC...
 OWNER_ID=123456789
-CHANNEL_ID=-100xxxxxxxxx
+CHANNEL_ID=-100xxxxxxxxx # или forge_channel
 POSTGRES_USER=bot
 POSTGRES_PASSWORD=secret
 POSTGRES_DB=forgebot
 POSTGRES_DSN=postgresql://bot:secret@postgres:5432/forgebot
 ```
+При запуске бот сам создаёт таблицы и загружает список админов.
 
 🐳 Быстрый запуск (Docker)
 

@@ -11,6 +11,7 @@ from aiogram.filters import Command
 
 from modules.db import db, init_guests_table, init_visits_table
 from modules.admin import startup as admin_startup
+import modules.menu  # register /help
 from modules.env import get_env
 
 load_dotenv()
@@ -56,9 +57,9 @@ async def start_cmd(message: types.Message) -> None:
 async def on_startup():
     """Connect DB and load routers from modules package."""
     await db.connect()
-    await admin_startup()  # create tables
     await init_guests_table()
     await init_visits_table()
+    await admin_startup()
 
     for _, name, _ in pkgutil.iter_modules(["modules"]):
         if name.startswith("_"):

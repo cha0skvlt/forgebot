@@ -71,6 +71,12 @@ async def init_guests_table() -> None:
         )
         """
     )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS guests_uuid_idx ON guests(uuid)"
+    )
+    await db.execute(
+        "CREATE INDEX IF NOT EXISTS guests_tg_id_idx ON guests(tg_id)"
+    )
     log.info("guests table ensured")
 
 

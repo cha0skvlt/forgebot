@@ -39,7 +39,8 @@ async def start_uuid(message: Message, bot: Bot) -> None:
         await message.answer("❌ Invalid QR code.")
         return
     guest_id = row["id"]
-    if row["tg_id"] is None:
+    registered = row["tg_id"] is not None
+    if not registered:
         name = message.from_user.username or message.from_user.first_name
         await db.execute(
             "UPDATE guests SET tg_id=$1, name=$2, source='qr', agreed_at=now() WHERE uuid=$3",
@@ -50,9 +51,14 @@ async def start_uuid(message: Message, bot: Bot) -> None:
         await message.answer("✅ Registration complete. Согласие получено.")
     await db.execute("INSERT INTO visits(guest_id) VALUES($1)", guest_id)
     count = await db.fetchval("SELECT COUNT(*) FROM visits WHERE guest_id=$1", guest_id)
+    if registered:
+        await message.answer(f"Это уже {count}-е посещение")
+        return
     if count == 1:
         channel_id = get_env("CHANNEL_ID")
-        if channel_id:
+        if not channel_id:
+            log.warning("CHANNEL_ID not set")
+        elif channel_id.startswith("-100"):
             try:
                 link = await bot.create_chat_invite_link(int(channel_id), member_limit=1)
                 await bot.send_message(message.from_user.id, link.invite_link)
@@ -60,7 +66,8 @@ async def start_uuid(message: Message, bot: Bot) -> None:
                 log.exception("invite failed: %s", e)
                 await message.answer("Registered, but invite failed.")
         else:
-            log.warning("CHANNEL_ID not set")
+            public = channel_id.lstrip("@")
+            await bot.send_message(message.from_user.id, f"https://t.me/{public}")
     else:
         await message.answer(f"Это уже {count}-е посещение")
 

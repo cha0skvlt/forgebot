@@ -11,6 +11,7 @@ from aiogram.filters import Command
 
 from modules.db import db, init_guests_table, init_visits_table
 from modules.admin import startup as admin_startup
+import modules.menu  # register /help
 from modules.env import get_env
 
 load_dotenv()

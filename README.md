@@ -54,7 +54,7 @@
 ```env
 BOT_TOKEN=123456:ABC...
 OWNER_ID=123456789
-CHANNEL_ID=-100xxxxxxxxx
+CHANNEL_ID=-100xxxxxxxxx # или forge_channel
 POSTGRES_USER=bot
 POSTGRES_PASSWORD=secret
 POSTGRES_DB=forgebot

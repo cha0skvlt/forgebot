@@ -60,6 +60,7 @@ POSTGRES_PASSWORD=secret
 POSTGRES_DB=forgebot
 POSTGRES_DSN=postgresql://bot:secret@postgres:5432/forgebot
 ```
+При запуске бот сам создаёт таблицы и загружает список админов.
 
 🐳 Быстрый запуск (Docker)
 

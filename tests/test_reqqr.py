@@ -71,12 +71,82 @@ async def test_start_uuid_new(monkeypatch):
     monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
     monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
-    os.environ["CHANNEL_ID"] = "123"
+    os.environ["CHANNEL_ID"] = "-100123"
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert calls["update"] == (42, "user", "good")
     assert msg.bot.created and msg.bot.sent
     assert msg.answers == ["✅ Registration complete. Согласие получено."]
+
+
+@pytest.mark.asyncio
+async def test_start_uuid_public(monkeypatch):
+    async def dummy_fetchrow(q, uuid):
+        return {"id": 1, "tg_id": None}
+
+    async def dummy_execute(q, *args):
+        pass
+
+    async def dummy_fetchval(q, *args):
+        return 1
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    os.environ["CHANNEL_ID"] = "@pub"
+    msg = make_msg()
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert msg.bot.sent == [(msg.from_user.id, "https://t.me/pub")]
+
+
+@pytest.mark.asyncio
+async def test_start_uuid_invite_error(monkeypatch):
+    async def dummy_fetchrow(q, uuid):
+        return {"id": 1, "tg_id": None}
+
+    async def dummy_execute(q, *args):
+        pass
+
+    async def dummy_fetchval(q, *args):
+        return 1
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    os.environ["CHANNEL_ID"] = "-100123"
+
+    async def fail_invite(*args, **kwargs):
+        raise Exception("boom")
+
+    msg = make_msg()
+    msg.bot.create_chat_invite_link = fail_invite
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert not msg.bot.sent
+    assert msg.answers[-1] == "Registered, but invite failed."
+
+
+@pytest.mark.asyncio
+async def test_start_uuid_no_links(monkeypatch):
+    warnings = []
+
+    async def dummy_fetchrow(q, uuid):
+        return {"id": 1, "tg_id": None}
+
+    async def dummy_execute(q, *args):
+        pass
+
+    async def dummy_fetchval(q, *args):
+        return 1
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
+    monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
+    monkeypatch.setattr(reqqr.log, "warning", lambda msg: warnings.append(msg))
+    os.environ.pop("CHANNEL_ID", None)
+    msg = make_msg()
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert not msg.bot.sent
+    assert warnings
 
 
 @pytest.mark.asyncio

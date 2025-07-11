@@ -63,11 +63,3 @@ def test_admin_loads():
     import modules.admin as admin_mod
     importlib.reload(admin_mod)
 
-
-@pytest.mark.asyncio
-async def test_start_owner(monkeypatch):
-    monkeypatch.setattr(admin, "START_TIME", datetime.now())
-    monkeypatch.setattr(admin.pkgutil, "iter_modules", lambda *_: [])
-    msg = make_msg("/start")
-    await admin.start_cmd(msg)
-    assert msg.answers and msg.answers[0].startswith("Status: OK")

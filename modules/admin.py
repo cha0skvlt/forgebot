@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 import logging
+import pkgutil
+from datetime import date, datetime
 from aiogram import Router, Bot
 from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
-from datetime import date
 
 from modules.qr import make_qr_link
 from modules.db import db
@@ -13,6 +14,7 @@ from modules.env import get_env
 
 router = Router()
 log = logging.getLogger(__name__)
+START_TIME = datetime.now()
 
 
 async def startup() -> None:
@@ -132,5 +134,22 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         message.from_user.id,
         BufferedInputFile(data, filename="qr.png"),
         caption=url,
+    )
+
+
+@router.message(Command("start"))
+async def start_cmd(message: Message) -> None:
+    owner_id = int(get_env("OWNER_ID", required=True))
+    if message.from_user.id != owner_id:
+        return
+    delta = datetime.now() - START_TIME
+    days = delta.days
+    hours = delta.seconds // 3600
+    modules = [
+        n for _, n, _ in pkgutil.iter_modules(["modules"]) if not n.startswith("_")
+    ]
+    mods = ", ".join(modules) if modules else "none"
+    await message.answer(
+        f"Status: OK\nup for {days}d {hours}h\nLoaded modules: {mods}\nbot core by @cha0skvlt"
     )
 

@@ -3,10 +3,9 @@ import sys
 import pathlib
 import pytest
 
+os.environ["OWNER_ID"] = "1"
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from modules import report
-
-os.environ["OWNER_ID"] = "1"
 
 
 class DummyUser:

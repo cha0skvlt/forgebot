@@ -9,7 +9,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 
 from modules.db import db
-from modules.env import get_env
+from modules import env
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 def _admin_only(func):
     async def wrapper(message: Message, *args, **kwargs):
         uid = message.from_user.id if message.from_user else 0
-        owner_id = int(get_env("OWNER_ID", required=True))
+        owner_id = int(env.get_env("OWNER_ID", required=True))
         if uid == owner_id:
             return await func(message, *args, **kwargs)
         row = await db.fetchrow("SELECT 1 FROM admins WHERE user_id=$1", uid)
@@ -30,6 +30,9 @@ def _admin_only(func):
 
 @router.message(Command("start"))
 async def start_uuid(message: Message, bot: Bot) -> None:
+    owner_id = int(env.get_env("OWNER_ID", required=True))
+    if message.from_user.id == owner_id:
+        return
     parts = message.text.split() if message.text else []
     if len(parts) != 2:
         return
@@ -55,7 +58,7 @@ async def start_uuid(message: Message, bot: Bot) -> None:
         await message.answer(f"Это уже {count}-е посещение")
         return
     if count == 1:
-        channel_id = get_env("CHANNEL_ID")
+        channel_id = env.CHANNEL_ID
         if not channel_id:
             log.warning("CHANNEL_ID not set")
         elif channel_id.startswith("-100"):

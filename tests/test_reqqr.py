@@ -3,10 +3,9 @@ import sys
 import pathlib
 import pytest
 
+os.environ["OWNER_ID"] = "1"
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from modules import reqqr, admin
-
-os.environ["OWNER_ID"] = "1"
 
 
 class DummyUser:
@@ -317,3 +316,20 @@ async def test_genqr(monkeypatch):
     chat_id, photo, caption = msg.bot.photos[0]
     assert chat_id == msg.from_user.id
     assert caption == "t.me/bot?start=uuid"
+
+
+@pytest.mark.asyncio
+async def test_start_uuid_owner_skip(monkeypatch):
+    called = False
+
+    async def dummy_fetchrow(q, uuid):
+        nonlocal called
+        called = True
+        return {"id": 1, "tg_id": None}
+
+    monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
+    msg = make_msg()
+    msg.from_user.id = 1
+    await reqqr.start_uuid(msg, bot=msg.bot)
+    assert not called
+    assert msg.answers == []

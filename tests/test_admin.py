@@ -56,3 +56,9 @@ async def test_rm_admin_invalid(monkeypatch):
     await admin.rm_admin(msg)
     assert msg.answers == ["Invalid user ID"]
     assert not called
+
+
+def test_admin_loads():
+    import importlib
+    import modules.admin as admin_mod
+    importlib.reload(admin_mod)

@@ -4,9 +4,11 @@ import pathlib
 import pytest
 
 os.environ["OWNER_ID"] = "1"
+
 os.environ["CHANNEL_ID"] = "-100123"
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from modules import reqqr, admin, env
+
 
 
 class DummyUser:
@@ -369,7 +371,9 @@ async def test_start_uuid_owner_skip(monkeypatch):
     async def dummy_fetchrow(q, uuid):
         nonlocal called
         called = True
+
         return {"id": 1, "tg_id": None, "invited_at": None}
+
 
     monkeypatch.setattr(reqqr.db, "fetchrow", dummy_fetchrow)
     msg = make_msg()

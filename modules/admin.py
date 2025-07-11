@@ -137,6 +137,7 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
     )
 
 
+
 @router.message(Command("search_guest"))
 @_admin_only
 async def search_guest(message: Message) -> None:
@@ -154,7 +155,6 @@ async def search_guest(message: Message) -> None:
         return
     lines = [f"{r['name']}, {r['phone']}, {r['dob']}" for r in rows]
     await message.answer("\n".join(lines))
-
 
 @router.message(Command("start"))
 async def start_cmd(message: Message) -> None:

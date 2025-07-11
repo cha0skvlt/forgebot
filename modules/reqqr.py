@@ -63,7 +63,9 @@ async def start_uuid(message: Message, bot: Bot) -> None:
     if registered:
         await message.answer(f"Это уже {count}-е посещение")
         return
+
     if count == 1 and row["invited_at"] is None:
+
         channel_id = env.CHANNEL_ID
         if not channel_id:
             log.warning("CHANNEL_ID not set")
@@ -137,5 +139,4 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         BufferedInputFile(buf.getvalue(), filename="qr.png"),
         caption=url,
     )
-
 

@@ -11,3 +11,7 @@ def get_env(name: str, default: str | None = None, *, required: bool = False) ->
         raise RuntimeError(f"{name} not set")
     return None
 
+
+OWNER_ID = int(get_env("OWNER_ID", required=True))
+CHANNEL_ID = get_env("CHANNEL_ID")
+

@@ -3,6 +3,8 @@ from __future__ import annotations
 import io
 import qrcode
 
+__all__ = ["make_qr_link"]
+
 
 def make_qr_link(uuid: str, bot_username: str) -> tuple[str, bytes]:
     url = f"t.me/{bot_username}?start={uuid}"

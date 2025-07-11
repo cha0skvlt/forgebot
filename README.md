@@ -58,7 +58,5 @@ POSTGRES_DSN=postgresql://bot:secret@postgres:5432/forgebot
 docker-compose up --build -d
 ```
 
-Бот автоматически создаёт таблицы и подключается к PostgreSQL.  
-При регистрации по QR гости автоматически получают инвайт и фиксируются в базе.
 
 

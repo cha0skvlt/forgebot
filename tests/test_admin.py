@@ -2,11 +2,11 @@ import os
 import sys
 import pathlib
 import pytest
-
-sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from modules import admin
+from datetime import datetime
 
 os.environ["OWNER_ID"] = "1"
+sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
+from modules import admin
 
 
 class DummyUser:
@@ -62,3 +62,4 @@ def test_admin_loads():
     import importlib
     import modules.admin as admin_mod
     importlib.reload(admin_mod)
+

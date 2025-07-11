@@ -8,6 +8,7 @@ sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
 from modules import reqqr, admin
 
 
+
 class DummyUser:
     def __init__(self, uid, username="name", first_name="first"):
         self.id = uid
@@ -71,6 +72,7 @@ async def test_start_uuid_new(monkeypatch):
     monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
     monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     os.environ["CHANNEL_ID"] = "-100123"
+    env.CHANNEL_ID = "-100123"
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert calls["update"] == (42, "user", "good")
@@ -93,6 +95,7 @@ async def test_start_uuid_public(monkeypatch):
     monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
     monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     os.environ["CHANNEL_ID"] = "@pub"
+    env.CHANNEL_ID = "@pub"
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert msg.bot.sent == [(msg.from_user.id, "https://t.me/pub")]
@@ -113,6 +116,7 @@ async def test_start_uuid_invite_error(monkeypatch):
     monkeypatch.setattr(reqqr.db, "execute", dummy_execute)
     monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     os.environ["CHANNEL_ID"] = "-100123"
+    env.CHANNEL_ID = "-100123"
 
     async def fail_invite(*args, **kwargs):
         raise Exception("boom")
@@ -142,6 +146,7 @@ async def test_start_uuid_no_links(monkeypatch):
     monkeypatch.setattr(reqqr.db, "fetchval", dummy_fetchval)
     monkeypatch.setattr(reqqr.log, "warning", lambda msg: warnings.append(msg))
     os.environ.pop("CHANNEL_ID", None)
+    env.CHANNEL_ID = None
     msg = make_msg()
     await reqqr.start_uuid(msg, bot=msg.bot)
     assert not msg.bot.sent

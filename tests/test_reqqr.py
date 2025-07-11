@@ -4,9 +4,9 @@ import pathlib
 import pytest
 
 os.environ["OWNER_ID"] = "1"
-os.environ["CHANNEL_ID"] = "-100123"
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[1]))
-from modules import reqqr, admin, env
+from modules import reqqr, admin
+
 
 
 class DummyUser:

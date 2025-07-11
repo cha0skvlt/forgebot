@@ -71,3 +71,4 @@ async def test_start_owner(monkeypatch):
     msg = make_msg("/start")
     await admin.start_cmd(msg)
     assert msg.answers and msg.answers[0].startswith("Status: OK")
+

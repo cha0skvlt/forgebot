@@ -124,4 +124,3 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
         caption=url,
     )
 
-

@@ -18,6 +18,9 @@ class Database:
         return self.pool
 
     async def connect(self) -> None:
+        if self.pool is not None:
+            log.debug("PostgreSQL pool already initialized")
+            return
         dsn = get_env("POSTGRES_DSN", required=True)
         for attempt in range(10):
             try:

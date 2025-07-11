@@ -30,6 +30,9 @@ def _admin_only(func):
 
 @router.message(Command("start"))
 async def start_uuid(message: Message, bot: Bot) -> None:
+    owner_id = int(get_env("OWNER_ID", required=True))
+    if message.from_user.id == owner_id:
+        return
     parts = message.text.split() if message.text else []
     if len(parts) != 2:
         return

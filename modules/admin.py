@@ -137,6 +137,25 @@ async def genqr_cmd(message: Message, bot: Bot) -> None:
     )
 
 
+
+@router.message(Command("search_guest"))
+@_admin_only
+async def search_guest(message: Message) -> None:
+    parts = message.text.split(" ", 1)
+    if len(parts) != 2:
+        await message.answer("Usage: /search_guest <query>")
+        return
+    query = f"%{parts[1].strip()}%"
+    rows = await db.fetch(
+        "SELECT name, phone, dob FROM guests WHERE name ILIKE $1 OR phone ILIKE $1 LIMIT 10",
+        query,
+    )
+    if not rows:
+        await message.answer("❌ No guests found.")
+        return
+    lines = [f"{r['name']}, {r['phone']}, {r['dob']}" for r in rows]
+    await message.answer("\n".join(lines))
+
 @router.message(Command("start"))
 async def start_cmd(message: Message) -> None:
     owner_id = int(get_env("OWNER_ID", required=True))

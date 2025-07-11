@@ -37,7 +37,10 @@ async def start_uuid(message: Message, bot: Bot) -> None:
     if len(parts) != 2:
         return
     uuid = parts[1]
-    row = await db.fetchrow("SELECT id, tg_id FROM guests WHERE uuid=$1", uuid)
+    row = await db.fetchrow(
+        "SELECT id, tg_id, invited_at FROM guests WHERE uuid=$1",
+        uuid,
+    )
     if not row:
         await message.answer("❌ Invalid QR code.")
         return
@@ -53,11 +56,16 @@ async def start_uuid(message: Message, bot: Bot) -> None:
         )
         await message.answer("✅ Registration complete. Согласие получено.")
     await db.execute("INSERT INTO visits(guest_id) VALUES($1)", guest_id)
-    count = await db.fetchval("SELECT COUNT(*) FROM visits WHERE guest_id=$1", guest_id)
+    count = await db.fetchval(
+        "SELECT COUNT(*) FROM visits WHERE guest_id=$1",
+        guest_id,
+    )
     if registered:
         await message.answer(f"Это уже {count}-е посещение")
         return
-    if count == 1:
+
+    if count == 1 and row["invited_at"] is None:
+
         channel_id = env.CHANNEL_ID
         if not channel_id:
             log.warning("CHANNEL_ID not set")
@@ -65,12 +73,20 @@ async def start_uuid(message: Message, bot: Bot) -> None:
             try:
                 link = await bot.create_chat_invite_link(int(channel_id), member_limit=1)
                 await bot.send_message(message.from_user.id, link.invite_link)
+                await db.execute(
+                    "UPDATE guests SET invited_at=now() WHERE id=$1",
+                    guest_id,
+                )
             except Exception as e:
                 log.exception("invite failed: %s", e)
                 await message.answer("Registered, but invite failed.")
         else:
             public = channel_id.lstrip("@")
             await bot.send_message(message.from_user.id, f"https://t.me/{public}")
+            await db.execute(
+                "UPDATE guests SET invited_at=now() WHERE id=$1",
+                guest_id,
+            )
     else:
         await message.answer(f"Это уже {count}-е посещение")
 

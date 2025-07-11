@@ -70,7 +70,8 @@ async def init_guests_table() -> None:
             dob DATE,
             source TEXT,
             created_at TIMESTAMP DEFAULT now(),
-            agreed_at TIMESTAMP
+            agreed_at TIMESTAMP,
+            invited_at TIMESTAMP
         )
         """
     )
@@ -79,6 +80,9 @@ async def init_guests_table() -> None:
     )
     await db.execute(
         "CREATE INDEX IF NOT EXISTS guests_tg_id_idx ON guests(tg_id)"
+    )
+    await db.execute(
+        "ALTER TABLE guests ADD COLUMN IF NOT EXISTS invited_at TIMESTAMP"
     )
     log.info("guests table ensured")
 

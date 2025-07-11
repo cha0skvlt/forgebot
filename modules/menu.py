@@ -16,5 +16,6 @@ async def help_cmd(message: Message) -> None:
         "- /list_admin \u2014 show current admins\n"
         "- /genqr \u2014 generate a shared QR code\n"
         "- /reg \u2014 manually register a guest\n"
-        "- /report \u2014 show guest summary"
+        "- /report \u2014 show guest summary\n"
+        "- /search_guest \u2014 find guests by name or phone"
     )

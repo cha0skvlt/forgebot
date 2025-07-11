@@ -9,7 +9,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 
 from modules.db import db
-from modules.env import get_env
+from modules import env
 
 router = Router()
 log = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 def _admin_only(func):
     async def wrapper(message: Message, *args, **kwargs):
         uid = message.from_user.id if message.from_user else 0
-        owner_id = int(get_env("OWNER_ID", required=True))
+        owner_id = int(env.get_env("OWNER_ID", required=True))
         if uid == owner_id:
             return await func(message, *args, **kwargs)
         row = await db.fetchrow("SELECT 1 FROM admins WHERE user_id=$1", uid)
@@ -30,11 +30,17 @@ def _admin_only(func):
 
 @router.message(Command("start"))
 async def start_uuid(message: Message, bot: Bot) -> None:
+    owner_id = int(env.get_env("OWNER_ID", required=True))
+    if message.from_user.id == owner_id:
+        return
     parts = message.text.split() if message.text else []
     if len(parts) != 2:
         return
     uuid = parts[1]
-    row = await db.fetchrow("SELECT id, tg_id FROM guests WHERE uuid=$1", uuid)
+    row = await db.fetchrow(
+        "SELECT id, tg_id, invited_at FROM guests WHERE uuid=$1",
+        uuid,
+    )
     if not row:
         await message.answer("❌ Invalid QR code.")
         return
@@ -50,24 +56,35 @@ async def start_uuid(message: Message, bot: Bot) -> None:
         )
         await message.answer("✅ Registration complete. Согласие получено.")
     await db.execute("INSERT INTO visits(guest_id) VALUES($1)", guest_id)
-    count = await db.fetchval("SELECT COUNT(*) FROM visits WHERE guest_id=$1", guest_id)
+    count = await db.fetchval(
+        "SELECT COUNT(*) FROM visits WHERE guest_id=$1",
+        guest_id,
+    )
     if registered:
         await message.answer(f"Это уже {count}-е посещение")
         return
-    if count == 1:
-        channel_id = get_env("CHANNEL_ID")
+    if count == 1 and row["invited_at"] is None:
+        channel_id = env.CHANNEL_ID
         if not channel_id:
             log.warning("CHANNEL_ID not set")
         elif channel_id.startswith("-100"):
             try:
                 link = await bot.create_chat_invite_link(int(channel_id), member_limit=1)
                 await bot.send_message(message.from_user.id, link.invite_link)
+                await db.execute(
+                    "UPDATE guests SET invited_at=now() WHERE id=$1",
+                    guest_id,
+                )
             except Exception as e:
                 log.exception("invite failed: %s", e)
                 await message.answer("Registered, but invite failed.")
         else:
             public = channel_id.lstrip("@")
             await bot.send_message(message.from_user.id, f"https://t.me/{public}")
+            await db.execute(
+                "UPDATE guests SET invited_at=now() WHERE id=$1",
+                guest_id,
+            )
     else:
         await message.answer(f"Это уже {count}-е посещение")
 
